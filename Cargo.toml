@@ -1,0 +1,7 @@
+[package]
+name = "spike"
+version = "0.1.0"
+authors = ["Prajith Nair <kprajith@amazon.com>"]
+
+[dependencies]
+ansi_term = "0.9"

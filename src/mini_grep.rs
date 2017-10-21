@@ -6,6 +6,7 @@ use ansi_term::Colour::Red;
 use ansi_term::Colour::Yellow;
 use std::iter::Iterator;
 use ansi_term::ANSIString;
+use std::env::Args;
 
 #[derive(Debug)]
 pub struct Config {
@@ -14,17 +15,22 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn new(mut args: Args) -> Result<Config, &'static str> {
+        args.next();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
 
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("not enough arguments");
-        }
-        let query = args[1].clone();
-        let filename = args[2].clone();
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name"),
+        };
         Ok(Config { query, filename })
     }
     fn file(&self) -> Lines<BufReader<File>> {
-        let f = File::open(&self.filename).expect("file not found!");
+        let f = File::open(&self.filename)
+            .expect(&format!("file [{}] not found! ", Yellow.paint(&self.filename[..])).to_string()[..]);
         let f = BufReader::new(f);
         f.lines()
     }
@@ -43,16 +49,15 @@ impl Config {
     }
 
     pub fn search(&self) {
-        for (i, line) in self.file().enumerate() {
-            let l = line.unwrap();
-            if l.contains(&self.query[..]) {
-                println!(
-                    "line {}  - {}",
-                    i + 1,
-                    self.color_tokens(self.tokens(&l))
-                );
-            }
-        }
+        self.file()
+            .map(|l| l.unwrap())
+            .enumerate()
+            .filter(|&(_, ref line)| line.contains(&self.query[..]))
+            .for_each(|(i, line)| println!(
+                "line {}  - {}",
+                i + 1,
+                self.color_tokens(self.tokens(&line))
+            ));
     }
 }
 
